@@ -72,10 +72,11 @@
         const drawModeButton = document.getElementById('drawMode');
         const deletePolygonButton = document.getElementById('deletePolygon');
 
-        var selectedShape;
-        var polygon;
-        var drawingManager;
-        var allShapes = [];
+        const apiURL = 'https://serg.one/google-save-poly-api/api.php'
+
+        let selectedShape;
+        let drawingManager;
+        const allShapes = [];
         //make no selection
         function clearSelection() {
             if (selectedShape) {
@@ -103,8 +104,8 @@
             var coords = [];
             for (var i = 0; i < path.length; i++) {
                 coords.push({
-                    latitude: path.getAt(i).lat(),
-                    longitude: path.getAt(i).lng()
+                    lat: path.getAt(i).lat(),
+                    lng: path.getAt(i).lng()
                 });
             }
             return coords;
@@ -171,9 +172,17 @@
             });
             google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
 
-
             saveDataButton.addEventListener('click', () => {
                 console.log('saveDataButton', saveDataButton);
+                if (allShapes.length === 0) return;
+                fetch(apiURL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        polygons: allShapes.map(shape => getShapeCoords(shape))
+                    })
+                })
+                    .then(res => res.json())
+                    .then(data => console.log(data))
             });
 
             drawModeButton.addEventListener('click', () => {
@@ -184,10 +193,39 @@
                 deleteSelectedShape();
             });
 
+            getUrlVars()
 
         }
 
+        function getUrlVars() {
+            const params = new Proxy(new URLSearchParams(window.location.search), {
+                get: (searchParams, prop) => searchParams.get(prop),
+            });
+            if (params.polygonid) {
+                console.log(params.polygonid);
 
+                fetch(apiURL + "?id=" + params.polygonid)
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log(data);
+
+                        data.geometry.map(p => {
+                            console.log('p', p);
+                            const polygon = new google.maps.Polygon({
+                                paths: p,
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 0.8,
+                                strokeWeight: 1,
+                                fillColor: '#FF0000',
+                                fillOpacity: 0.35
+                            });
+                            polygon.setMap(map);
+                            // allShapes.push(polygon);
+                            // setSelection(polygon);
+                        })
+                    })
+            }
+        }
 
     </script>
     <script
