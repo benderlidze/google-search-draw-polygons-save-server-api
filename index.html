@@ -20,19 +20,15 @@
         margin: 0px;
         font-family: Arial, Helvetica, sans-serif;
     }
-
-
     #map {
         width: 100%;
         height: 100%;
     }
-
     #container {
         display: flex;
         height: 800px;
         justify-content: space-between;
     }
-
     #header {
         padding: 10px;
         display: flex;
@@ -43,7 +39,6 @@
         background-color: #131d4b;
         color: white;
     }
-
     .inputs {
         padding: 5px;
     }
@@ -111,8 +106,7 @@
             return coords;
         }
 
-
-        function initMap() {
+        async function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 4,
                 center: { lat: 52.31786821583068, lng: 5.511021859039191 },
@@ -167,6 +161,7 @@
                 allShapes.push(newShape);
                 console.log("all shapes array", allShapes);
                 console.log("first coords", getShapeCoords(allShapes[0]));
+
                 //after drawing = set selected
                 setSelection(newShape);
             });
@@ -197,7 +192,26 @@
                 deleteSelectedShape();
             });
 
-            getUrlVars()
+            const urlParams = getUrlVars()
+            const polygons = await fetchPolygonsByID(urlParams.polygonid)
+            if (!polygons) return;
+
+            const bounds = new google.maps.LatLngBounds();
+            polygons.geometry.map(p => {
+                const polygon = new google.maps.Polygon({
+                    paths: p,
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 1,
+                    fillColor: '#FF0000',
+                    fillOpacity: 0.35
+                });
+                polygon.setMap(map);
+                polygon.getPath().forEach(function (latLng) {
+                    bounds.extend(latLng);
+                });
+            })
+            map.fitBounds(bounds);
 
         }
 
@@ -205,30 +219,17 @@
             const params = new Proxy(new URLSearchParams(window.location.search), {
                 get: (searchParams, prop) => searchParams.get(prop),
             });
-            if (params.polygonid) {
-                console.log(params.polygonid);
+            return params;
+        }
 
-                fetch(apiURL + "?id=" + params.polygonid)
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log(data);
-
-                        data.geometry.map(p => {
-                            console.log('p', p);
-                            const polygon = new google.maps.Polygon({
-                                paths: p,
-                                strokeColor: '#FF0000',
-                                strokeOpacity: 0.8,
-                                strokeWeight: 1,
-                                fillColor: '#FF0000',
-                                fillOpacity: 0.35
-                            });
-                            polygon.setMap(map);
-                            // allShapes.push(polygon);
-                            // setSelection(polygon);
-                        })
-                    })
-            }
+        async function fetchPolygonsByID(polygonId) {
+            if (!polygonId) return;
+            return fetch(apiURL + "?id=" + polygonId)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data);
+                    return data;
+                })
         }
 
     </script>
