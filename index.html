@@ -70,12 +70,12 @@
         const saveDataButton = document.getElementById('saveData');
         const drawModeButton = document.getElementById('drawMode');
         const deletePolygonButton = document.getElementById('deletePolygon');
-
         const apiURL = 'https://serg.one/google-save-poly-api/api.php'
 
         let selectedShape;
         let drawingManager;
         const allShapes = [];
+        let locationCenter;
 
         async function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
@@ -88,6 +88,7 @@
             var options = {
                 componentRestrictions: { country: "us" }
             };
+
             const autocomplete = new google.maps.places.Autocomplete(input);
             google.maps.event.addListener(autocomplete, 'place_changed', function (e) {
                 var place = autocomplete.getPlace();
@@ -136,7 +137,12 @@
                 //after drawing = set selected
                 setSelection(newShape);
             });
+
             google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
+            google.maps.event.addListener(map, 'click', () => { //clear selection on map click
+                allShapes.forEach(d => d.setEditable(false))
+                clearSelection()
+            });
 
             saveDataButton.addEventListener('click', () => {
                 saveData()
@@ -151,12 +157,13 @@
             });
 
             const urlParams = getUrlVars()
-            const location = urlParams.location;
+            const locationUrl = urlParams.location;
 
-            if (location) {
-                geocoder.geocode({ 'address': location }, function (results, status) {
+            if (locationUrl) {
+                geocoder.geocode({ 'address': locationUrl }, function (results, status) {
                     if (status == google.maps.GeocoderStatus.OK) {
-                        map.setCenter(results[0].geometry.location);
+                        locationCenter = results[0].geometry.location
+                        map.setCenter(locationCenter);
                         map.setZoom(8);
                     }
                 });
@@ -184,11 +191,13 @@
                 google.maps.event.addListener(polygon, 'click', () => {
                     console.log('1111', polygon);
                     polygon.setEditable(true);
+                    selectedShape = polygon;
                 });
 
                 allShapes.push(polygon);
             })
-            map.fitBounds(bounds);
+
+            if (!locationCenter) map.fitBounds(bounds);
 
         }
 
