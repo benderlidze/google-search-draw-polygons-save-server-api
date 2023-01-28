@@ -58,6 +58,7 @@
             <div id="map"></div>
         </div>
 
+        <button id="drawSquarePoly">Draw square poly</button>
         <button id="drawMode">Draw Poly</button>
         <button id="deletePolygon">Delete Poly</button>
         <button id="saveData">Save data to DB</button>
@@ -67,6 +68,7 @@
 
         let map;
         const input = document.getElementById('searchTextField');
+        const drawSquarePolyButton = document.getElementById('drawSquarePoly');
         const saveDataButton = document.getElementById('saveData');
         const drawModeButton = document.getElementById('drawMode');
         const deletePolygonButton = document.getElementById('deletePolygon');
@@ -82,7 +84,8 @@
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 4,
                 center: { lat: 52.31786821583068, lng: 5.511021859039191 },
-                mapTypeId: google.maps.MapTypeId.ROADMAP
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                tilt: 0,
             });
 
 
@@ -147,6 +150,14 @@
                 clearSelection()
             });
 
+            drawSquarePolyButton.addEventListener('click', () => {
+
+
+                const point = map.getCenter();
+                const tiltedRectangle1 = drawPolygon(point, 500, 500, 500, 500, 0, 4, "#000000", 3, 1, "#ffffff", 1, {}, true);
+                tiltedRectangle1.setMap(map);
+            })
+
             saveDataButton.addEventListener('click', () => {
                 saveData()
             });
@@ -171,8 +182,6 @@
                     }
                 });
             }
-
-
 
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(urlParams.polygonid)
@@ -203,12 +212,49 @@
                 })
                 if (!locationCenter) map.fitBounds(bounds);
             }
+            if (!polygons && !locationCenter) getUserLocation()
 
-            if (!locationCenter) getUserLocation()
+
+
         }
 
+        function drawPolygon(point, r1, r2, r3, r4, rotation, vertexCount, strokeColour, strokeWeight, Strokepacity, fillColour, fillOpacity, opts, tilt) {
+
+            var rot = -rotation * Math.PI / 180;
+            var points = [];
+            var latConv = google.maps.geometry.spherical.computeDistanceBetween(point, new google.maps.LatLng(point.lat() + 0.1, point.lng())) * 10;
+            var lngConv = google.maps.geometry.spherical.computeDistanceBetween(point, new google.maps.LatLng(point.lat(), point.lng() + 0.1)) * 10;
+            var step = (360 / vertexCount) || 10;
+
+            var flop = -1;
+            if (tilt) {
+                var I1 = 180 / vertexCount;
+            } else {
+                var I1 = 0;
+            }
+            for (var i = I1; i <= 360.001 + I1; i += step) {
+                var r1a = flop ? r1 : r3;
+                var r2a = flop ? r2 : r4;
+                flop = -1 - flop;
+                var y = r1a * Math.cos(i * Math.PI / 180);
+                var x = r2a * Math.sin(i * Math.PI / 180);
+                var lng = (x * Math.cos(rot) - y * Math.sin(rot)) / lngConv;
+                var lat = (y * Math.cos(rot) + x * Math.sin(rot)) / latConv;
+
+                points.push(new google.maps.LatLng(point.lat() + lat, point.lng() + lng));
+            }
+            return (new google.maps.Polygon({
+                paths: points,
+                strokeColor: strokeColour,
+                strokeWeight: strokeWeight,
+                strokeOpacity: Strokepacity,
+                fillColor: fillColour,
+                fillOpacity: fillOpacity
+            }))
+        }
+
+
         function getUserLocation() {
-            console.log('1233', 1233);
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     console.log(position.coords.latitude, position.coords.longitude);
@@ -216,8 +262,6 @@
                     map.panTo({ lat, lng });
                     map.setZoom(12)
                 });
-            } else {
-                //x.innerHTML = "Geolocation is not supported by this browser.";
             }
         }
 
