@@ -78,11 +78,14 @@
         let locationCenter;
 
         async function initMap() {
+
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 4,
                 center: { lat: 52.31786821583068, lng: 5.511021859039191 },
                 mapTypeId: google.maps.MapTypeId.ROADMAP
             });
+
+
 
             const geocoder = new google.maps.Geocoder()
             var options = {
@@ -169,36 +172,53 @@
                 });
             }
 
+
+
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(urlParams.polygonid)
-            if (!polygons) return;
-            const bounds = new google.maps.LatLngBounds();
-            polygons.geometry.map(p => {
-                const polygon = new google.maps.Polygon({
-                    paths: p,
-                    strokeColor: '#FF0000',
-                    strokeOpacity: 0.8,
-                    strokeWeight: 1,
-                    fillColor: '#FF0000',
-                    fillOpacity: 0.35,
-                    //editable: true,
-                    //draggable: true,
-                });
-                polygon.setMap(map);
-                polygon.getPath().forEach(function (latLng) {
-                    bounds.extend(latLng);
-                });
-                google.maps.event.addListener(polygon, 'click', () => {
-                    console.log('1111', polygon);
-                    polygon.setEditable(true);
-                    selectedShape = polygon;
-                });
+            if (polygons) {
+                const bounds = new google.maps.LatLngBounds();
+                polygons.geometry.map(p => {
+                    const polygon = new google.maps.Polygon({
+                        paths: p,
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 1,
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.35,
+                        //editable: true,
+                        //draggable: true,
+                    });
+                    polygon.setMap(map);
+                    polygon.getPath().forEach(function (latLng) {
+                        bounds.extend(latLng);
+                    });
+                    google.maps.event.addListener(polygon, 'click', () => {
+                        console.log('1111', polygon);
+                        polygon.setEditable(true);
+                        selectedShape = polygon;
+                    });
 
-                allShapes.push(polygon);
-            })
+                    allShapes.push(polygon);
+                })
+                if (!locationCenter) map.fitBounds(bounds);
+            }
 
-            if (!locationCenter) map.fitBounds(bounds);
+            if (!locationCenter) getUserLocation()
+        }
 
+        function getUserLocation() {
+            console.log('1233', 1233);
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    console.log(position.coords.latitude, position.coords.longitude);
+                    const { latitude: lat, longitude: lng } = position.coords;
+                    map.panTo({ lat, lng });
+                    map.setZoom(12)
+                });
+            } else {
+                //x.innerHTML = "Geolocation is not supported by this browser.";
+            }
         }
 
         function saveData() {
