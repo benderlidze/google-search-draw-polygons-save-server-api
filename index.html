@@ -151,11 +151,9 @@
             });
 
             drawSquarePolyButton.addEventListener('click', () => {
-
-
                 const point = map.getCenter();
-                const tiltedRectangle1 = drawPolygon(point, 500, 500, 500, 500, 0, 4, "#000000", 3, 1, "#ffffff", 1, {}, true);
-                tiltedRectangle1.setMap(map);
+                const tiltedRectangle1 = createPolygonGeometry(point, 500, 500, 500, 500, 0, 4, true);
+                buildPolygon(tiltedRectangle1)
             })
 
             saveDataButton.addEventListener('click', () => {
@@ -188,37 +186,38 @@
             if (polygons) {
                 const bounds = new google.maps.LatLngBounds();
                 polygons.geometry.map(p => {
-                    const polygon = new google.maps.Polygon({
-                        paths: p,
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 0.8,
-                        strokeWeight: 1,
-                        fillColor: '#FF0000',
-                        fillOpacity: 0.35,
-                        //editable: true,
-                        //draggable: true,
-                    });
-                    polygon.setMap(map);
+                    const polygon = buildPolygon(p)
                     polygon.getPath().forEach(function (latLng) {
                         bounds.extend(latLng);
                     });
-                    google.maps.event.addListener(polygon, 'click', () => {
-                        console.log('1111', polygon);
-                        polygon.setEditable(true);
-                        selectedShape = polygon;
-                    });
-
-                    allShapes.push(polygon);
                 })
                 if (!locationCenter) map.fitBounds(bounds);
             }
             if (!polygons && !locationCenter) getUserLocation()
 
-
-
         }
 
-        function drawPolygon(point, r1, r2, r3, r4, rotation, vertexCount, strokeColour, strokeWeight, Strokepacity, fillColour, fillOpacity, opts, tilt) {
+        function buildPolygon(geometry) {
+            const polygon = new google.maps.Polygon({
+                paths: geometry,
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 1,
+                fillColor: '#FF0000',
+                fillOpacity: 0.35,
+                //editable: true,
+                //draggable: true,
+            });
+            polygon.setMap(map);
+            google.maps.event.addListener(polygon, 'click', () => {
+                polygon.setEditable(true);
+                selectedShape = polygon;
+            });
+            allShapes.push(polygon);
+            return polygon;
+        }
+
+        function createPolygonGeometry(point, r1, r2, r3, r4, rotation, vertexCount, tilt) {
 
             var rot = -rotation * Math.PI / 180;
             var points = [];
@@ -243,14 +242,7 @@
 
                 points.push(new google.maps.LatLng(point.lat() + lat, point.lng() + lng));
             }
-            return (new google.maps.Polygon({
-                paths: points,
-                strokeColor: strokeColour,
-                strokeWeight: strokeWeight,
-                strokeOpacity: Strokepacity,
-                fillColor: fillColour,
-                fillOpacity: fillOpacity
-            }))
+            return points;
         }
 
 
