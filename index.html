@@ -23,7 +23,7 @@
 
     #map {
         width: 100%;
-        height: 100%;
+        height: 100vh;
     }
 
     #container {
@@ -45,23 +45,42 @@
 
     .inputs {
         padding: 5px;
+        margin: 5px;
+    }
+
+    .button {
+        padding: 10px;
+        margin: 5px;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #343538;
+    }
+
+    .right-pannel {
+        display: flex;
+        position: absolute;
+        top: 80px;
+        left: 10px;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px;
+        flex-direction: column;
     }
 </style>
 
 <body>
 
     <div id="main-container">
-        <div id="header">
+        <div id="map"></div>
+        <div class="right-pannel">
             <input id="searchTextField" class="inputs" placeholder="Enter a city, address or postal code">
+            <button class="button" id="drawSquarePoly">Draw square poly</button>
+            <button class="button" id="drawMode">Draw Poly</button>
+            <button class="button" id="deletePolygon">Delete Poly</button>
+            <button class="button" id="saveData">Save data to DB</button>
         </div>
-        <div id="container">
-            <div id="map"></div>
-        </div>
-
-        <button id="drawSquarePoly">Draw square poly</button>
-        <button id="drawMode">Draw Poly</button>
-        <button id="deletePolygon">Delete Poly</button>
-        <button id="saveData">Save data to DB</button>
     </div>
 
     <script type="text/javascript">
@@ -79,6 +98,12 @@
         const allShapes = [];
         let locationCenter;
 
+        const urlParams = getUrlVars()
+        const locationUrl = urlParams.location;
+        const configUrl = urlParams.config;
+        const session = urlParams.session ? urlParams.session : generateSessionID();
+
+
         async function initMap() {
 
             map = new google.maps.Map(document.getElementById('map'), {
@@ -87,8 +112,6 @@
                 mapTypeId: google.maps.MapTypeId.ROADMAP,
                 tilt: 0,
             });
-
-
 
             const geocoder = new google.maps.Geocoder()
             var options = {
@@ -146,7 +169,12 @@
 
             google.maps.event.addListener(drawingManager, 'drawingmode_changed', clearSelection);
             google.maps.event.addListener(map, 'click', () => { //clear selection on map click
-                allShapes.forEach(d => d.setEditable(false))
+
+                allShapes.forEach(d => {// deselect all polygons
+                    d.setEditable(false)
+                    d.setDraggable(false)
+                })
+
                 clearSelection()
             });
 
@@ -157,7 +185,7 @@
             })
 
             saveDataButton.addEventListener('click', () => {
-                saveData()
+                saveData(session)
             });
 
             drawModeButton.addEventListener('click', () => {
@@ -167,9 +195,6 @@
             deletePolygonButton.addEventListener('click', () => {
                 deleteSelectedShape();
             });
-
-            const urlParams = getUrlVars()
-            const locationUrl = urlParams.location;
 
             if (locationUrl) {
                 geocoder.geocode({ 'address': locationUrl }, function (results, status) {
@@ -182,8 +207,8 @@
             }
 
             //------------Load Polygons from DB ----------------
-            const polygons = await fetchPolygonsByID(urlParams.polygonid)
-            if (polygons) {
+            const polygons = await fetchPolygonsByID(session)
+            if (polygons.geometry && polygons.geometry.length > 0) {
                 const bounds = new google.maps.LatLngBounds();
                 polygons.geometry.map(p => {
                     const polygon = buildPolygon(p)
@@ -193,8 +218,7 @@
                 })
                 if (!locationCenter) map.fitBounds(bounds);
             }
-            if (!polygons && !locationCenter) getUserLocation()
-
+            if (polygons.length === 0 && !locationCenter) getUserLocation()
         }
 
         function buildPolygon(geometry) {
@@ -210,7 +234,12 @@
             });
             polygon.setMap(map);
             google.maps.event.addListener(polygon, 'click', () => {
+                allShapes.forEach(d => {// deselect all polygons
+                    d.setEditable(false)
+                    d.setDraggable(false)
+                })
                 polygon.setEditable(true);
+                polygon.setDraggable(true);
                 selectedShape = polygon;
             });
             allShapes.push(polygon);
@@ -257,22 +286,21 @@
             }
         }
 
-        function saveData() {
-            const urlParams = getUrlVars()
-            const polygonId = urlParams.polygonid || 0; //session id for saving data
+        function saveData(session) {
+            if (!session) return;
             if (allShapes.length === 0) return;
             fetch(apiURL, {
                 method: "POST",
                 body: JSON.stringify({
-                    polygonId: polygonId,
+                    session: session,
                     polygons: allShapes.map(shape => getShapeCoords(shape))
                 })
             })
                 .then(res => res.json())
                 .then(data => {
                     console.log('data', data);
-                    if (!data.id) return;
-                    window.history.pushState('', '', '?polygonid=' + data.id);
+                    if (!data.session) return;
+                    //window.history.pushState('', '', '?session=' + data.session);
                 })
 
         }
@@ -318,14 +346,28 @@
             return params;
         }
 
-        async function fetchPolygonsByID(polygonId) {
-            if (!polygonId) return;
-            return fetch(apiURL + "?id=" + polygonId)
+        function updateURL({ session, location, config }) {
+            const sessionUrl = session ? "session=" + session : "";
+            const locationUrl = location ? "&location=" + location : "";
+            const configUrl = config ? "&config=" + config : "";
+            window.history.pushState('', '', '?' + sessionUrl + locationUrl + configUrl);
+        }
+
+        async function fetchPolygonsByID(session) {
+            if (!session) return;
+            return fetch(apiURL + "?session=" + session)
                 .then(res => res.json())
                 .then(data => {
                     console.log(data);
                     return data;
                 })
+        }
+
+        function generateSessionID() {
+            //return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            const sessionId = new Date().getTime();
+            updateURL({ session: sessionId, location: locationUrl, config: configUrl })
+            return sessionId
         }
 
     </script>
