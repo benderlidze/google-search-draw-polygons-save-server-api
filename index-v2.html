@@ -54,8 +54,10 @@
     }
 
     .inputs {
-        padding: 5px;
+        padding: 12px;
         margin: 5px;
+        border: 0px solid red;
+        border-radius: 2px;
     }
 
     .button {
@@ -103,6 +105,14 @@
         cursor: pointer;
         user-select: none;
     }
+
+    .search-bar {
+        position: absolute;
+        top: 5px;
+        left: 200px;
+        z-index: 100;
+        border-radius: 10px;
+    }
 </style>
 
 <body>
@@ -111,12 +121,8 @@
         <div id="center-box"></div>
         <div id="plusButton">+</div>
         <div id="map"></div>
-        <div class="right-pannel">
+        <div class="search-bar">
             <input id="searchTextField" class="inputs" placeholder="Enter a city, address or postal code">
-            <button class="button" id="drawSquarePoly">Draw square poly</button>
-            <button class="button" id="drawMode">Draw Poly</button>
-            <button class="button" id="deletePolygon">Delete Poly</button>
-            <button class="button" id="saveData">Save data to DB</button>
         </div>
     </div>
 
@@ -124,10 +130,10 @@
 
         let map;
         const input = document.getElementById('searchTextField');
-        const drawSquarePolyButton = document.getElementById('drawSquarePoly');
-        const saveDataButton = document.getElementById('saveData');
-        const drawModeButton = document.getElementById('drawMode');
-        const deletePolygonButton = document.getElementById('deletePolygon');
+        // const drawSquarePolyButton = document.getElementById('drawSquarePoly');
+        // const saveDataButton = document.getElementById('saveData');
+        // const drawModeButton = document.getElementById('drawMode');
+        // const deletePolygonButton = document.getElementById('deletePolygon');
         const centerBox = document.getElementById('center-box');
         const plusButton = document.getElementById('plusButton');
         const apiURL = 'https://serg.one/google-save-poly-api/api.php'
@@ -212,24 +218,24 @@
                 clearSelection()
             });
 
-            drawSquarePolyButton.addEventListener('click', () => {
-                const point = map.getCenter();
-                const tiltedRectangle1 = createPolygonGeometry(point, 500, 500, 500, 500, 0, 4, true);
-                buildPolygon(tiltedRectangle1)
-                autosaveData({ log: "drawSquarePolyButton" })
-            })
+            // drawSquarePolyButton.addEventListener('click', () => {
+            //     const point = map.getCenter();
+            //     const tiltedRectangle1 = createPolygonGeometry(point, 500, 500, 500, 500, 0, 4, true);
+            //     buildPolygon(tiltedRectangle1)
+            //     autosaveData({ log: "drawSquarePolyButton" })
+            // })
 
-            saveDataButton.addEventListener('click', () => {
-                saveData(session)
-            });
+            // saveDataButton.addEventListener('click', () => {
+            //     saveData(session)
+            // });
 
-            drawModeButton.addEventListener('click', () => {
-                drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-            });
+            // drawModeButton.addEventListener('click', () => {
+            //     drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+            // });
 
-            deletePolygonButton.addEventListener('click', () => {
-                deleteSelectedShape();
-            });
+            // deletePolygonButton.addEventListener('click', () => {
+            //     deleteSelectedShape();
+            // });
 
             plusButton.addEventListener("click", () => {
 
