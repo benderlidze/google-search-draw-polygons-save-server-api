@@ -79,14 +79,46 @@
         flex-direction: column;
     }
 
-    #center-box {
+    /* #center-box {
         position: absolute;
         border: 1px dashed white;
-        width: 60%;
-        height: 60%;
+        width: 40%;
+        height: 40%;
         z-index: 100;
+        max-width: 400px;
+        max-height: 400px;
         pointer-events: none;
+    } */
+
+    #center-box {
+        position: absolute;
+        width: 50%;
+        /* border: 1px dashed white; */
+        z-index: 100;
+        max-width: 400px;
+        max-height: 400px;
+        pointer-events: none;
+
+        background:
+            linear-gradient(to right, #131d4b 4px, transparent 4px) 0 0,
+            linear-gradient(to right, #131d4b 4px, transparent 4px) 0 100%,
+            linear-gradient(to left, #131d4b 4px, transparent 4px) 100% 0,
+            linear-gradient(to left, #131d4b 4px, transparent 4px) 100% 100%,
+            linear-gradient(to bottom, #131d4b 4px, transparent 4px) 0 0,
+            linear-gradient(to bottom, #131d4b 4px, transparent 4px) 100% 0,
+            linear-gradient(to top, #131d4b 4px, transparent 4px) 0 100%,
+            linear-gradient(to top, #131d4b 4px, transparent 4px) 100% 100%;
+
+        background-repeat: no-repeat;
+        background-size: 20px 20px;
     }
+
+    #center-box:after {
+        content: "";
+        display: block;
+        padding-bottom: 100%;
+    }
+
 
     #plusButton {
         position: absolute;
@@ -174,7 +206,9 @@
                 tilt: 0,
                 fullscreenControl: false,
                 mapTypeControl: false,
-                gestureHandling: "cooperative",
+                // gestureHandling: "cooperative",
+                zoomControl: false,
+                streetViewControl: false,
             });
 
             const geocoder = new google.maps.Geocoder()
@@ -187,7 +221,7 @@
                 var place = autocomplete.getPlace();
                 const loc = place.geometry.location;
                 map.setCenter(place.geometry.location);
-                map.setZoom(8);
+                map.setZoom(16);
             });
 
             const drawingManager = new google.maps.drawing.DrawingManager({
@@ -226,7 +260,6 @@
 
                 allShapes.push(newShape);
                 setSelection(newShape);//after drawing = set selected
-
                 autosaveData({ log: "overlaycomplete" })
             });
 
@@ -283,6 +316,9 @@
 
                 const polygon = buildPolygon(coords)
                 autosaveData({ log: "plusButton" })
+
+                
+                setSelection(polygon);
             })
 
             if (locationUrl) {
@@ -326,7 +362,6 @@
             const [lng, lat] = center.geometry.coordinates;
             //const [lng, lat] = [bbox[2], bbox[3]];
 
-
             const { x, y } = fromLatLngToPoint({ lat, lng }, map)
             const div = document.createElement('div')
             div.className = "trash-bin"
@@ -335,6 +370,7 @@
             div.addEventListener('click', () => {
                 deleteSelectedShape()
                 map.getDiv().removeChild(div)
+                selectedShape = null
             })
             map.getDiv().appendChild(div)
         }
