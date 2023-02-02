@@ -209,6 +209,7 @@
                 // gestureHandling: "cooperative",
                 zoomControl: false,
                 streetViewControl: false,
+                tiltControl: false,
             });
 
             const geocoder = new google.maps.Geocoder()
@@ -489,6 +490,7 @@
             clearSelection();
             selectedShape = shape;
             shape.setEditable(true);
+            upateRecycleBin(shape)
         }
 
         //delete selected shape
