@@ -7,10 +7,7 @@
     <title>Google Maps Multiple Markers</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-    <script
-        src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"
         integrity="sha256-qXBd/EfAdjOA2FGrGAG+b3YBn2tn5A6bhz+LSgYD96k=" crossorigin="anonymous"></script>
 
@@ -55,9 +52,10 @@
 
     .inputs {
         padding: 12px;
-        margin: 5px;
         border: 0px solid red;
         border-radius: 2px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .button {
@@ -84,8 +82,8 @@
     #center-box {
         position: absolute;
         border: 1px dashed white;
-        width: 300px;
-        height: 300px;
+        width: 60%;
+        height: 60%;
         z-index: 100;
         pointer-events: none;
     }
@@ -94,32 +92,50 @@
         position: absolute;
         width: 50px;
         height: 50px;
-        z-index: 100;
+        z-index: 10000;
         background-color: #131d4b;
         color: #717ba7;
-        border-radius: 73px;
+        /* border-radius: 73px; */
         display: flex;
         justify-content: center;
         align-items: center;
         font-size: 2rem;
         cursor: pointer;
         user-select: none;
+        pointer-events: all;
     }
 
     .search-bar {
         position: absolute;
-        top: 5px;
-        left: 200px;
+        top: 0px;
         z-index: 100;
+        left: 0px;
+        width: 100%;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+
+    .trash-bin {
+        width: 40px;
+        height: 40px;
+        background-image: url(bin.svg);
+        background-size: 60%;
+        background-position: center;
+        position: absolute;
+        z-index: 10;
+        cursor: pointer;
+        background-color: white;
         border-radius: 10px;
+        background-repeat: no-repeat;
     }
 </style>
 
 <body>
 
     <div id="main-container">
-        <div id="center-box"></div>
-        <div id="plusButton">+</div>
+        <div id="center-box">
+            <div id="plusButton">+</div>
+        </div>
         <div id="map"></div>
         <div class="search-bar">
             <input id="searchTextField" class="inputs" placeholder="Enter a city, address or postal code">
@@ -156,6 +172,9 @@
                 center: { lat: 52.31786821583068, lng: 5.511021859039191 },
                 mapTypeId: google.maps.MapTypeId.SATELLITE,
                 tilt: 0,
+                fullscreenControl: false,
+                mapTypeControl: false,
+                gestureHandling: "cooperative",
             });
 
             const geocoder = new google.maps.Geocoder()
@@ -198,9 +217,11 @@
                 });
                 google.maps.event.addListener(newShape.getPath(), 'insert_at', function () {
                     autosaveData({ log: "insert_at" })
+                    upateRecycleBin(polygon)
                 });
                 google.maps.event.addListener(newShape.getPath(), 'set_at', function () {
                     autosaveData({ log: "set_at" })
+                    upateRecycleBin(polygon)
                 });
 
                 allShapes.push(newShape);
@@ -216,6 +237,16 @@
                     d.setDraggable(false)
                 })
                 clearSelection()
+                upateRecycleBin()
+            });
+            google.maps.event.addListener(map, 'zoom_changed', () => {
+                upateRecycleBin(selectedShape)
+            });
+            google.maps.event.addListener(map, 'dragstart', () => {
+                upateRecycleBin()
+            });
+            google.maps.event.addListener(map, 'idle', () => {
+                upateRecycleBin(selectedShape)
             });
 
             // drawSquarePolyButton.addEventListener('click', () => {
@@ -279,6 +310,35 @@
             if (polygons.length === 0 && !locationCenter) getUserLocation()
         }
 
+
+        function upateRecycleBin(polygon) {
+            document.querySelectorAll('.trash-bin').forEach(d => d.remove())
+
+            if (!polygon) return;
+            const coords = polygon.getPath().getArray().map(d => { return [d.lng(), d.lat()] })
+            const line = turf.lineString(coords);
+            const polygonLine = turf.lineToPolygon(line);
+            // const bbox = turf.bbox(polygonLine)
+            // var poly = turf.bboxPolygon(bbox);
+            // console.log('bbox', bbox);
+
+            const center = turf.centerOfMass(polygonLine);
+            const [lng, lat] = center.geometry.coordinates;
+            //const [lng, lat] = [bbox[2], bbox[3]];
+
+
+            const { x, y } = fromLatLngToPoint({ lat, lng }, map)
+            const div = document.createElement('div')
+            div.className = "trash-bin"
+            div.style.top = `${y - 20}px`
+            div.style.left = `${x - 20}px`
+            div.addEventListener('click', () => {
+                deleteSelectedShape()
+                map.getDiv().removeChild(div)
+            })
+            map.getDiv().appendChild(div)
+        }
+
         function buildPolygon(geometry) {
             console.log('geometry', geometry);
             const polygon = new google.maps.Polygon({
@@ -300,12 +360,16 @@
                 polygon.setEditable(true);
                 polygon.setDraggable(true);
                 selectedShape = polygon;
+
+                upateRecycleBin(polygon)
             });
             google.maps.event.addListener(polygon.getPath(), 'insert_at', function () {
                 autosaveData({ log: "insert_at" })
+                upateRecycleBin(polygon)
             });
             google.maps.event.addListener(polygon.getPath(), 'set_at', function () {
                 autosaveData({ log: "set_at" })
+                upateRecycleBin(polygon)
             });
 
             allShapes.push(polygon);
@@ -454,6 +518,14 @@
             const scale = 1 << map.getZoom();
             return projection.fromPointToLatLng(new google.maps.Point(x / scale + bottomLeft.x, y / scale + topRight.y));
         };
+
+        function fromLatLngToPoint(latLng, map) {
+            var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
+            var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
+            var scale = Math.pow(2, map.getZoom());
+            var worldPoint = map.getProjection().fromLatLngToPoint(latLng);
+            return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
+        }
 
     </script>
     <script
