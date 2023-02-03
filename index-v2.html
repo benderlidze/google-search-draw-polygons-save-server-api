@@ -98,19 +98,24 @@
         max-width: 400px;
         max-height: 400px;
         pointer-events: none;
-
         background:
-            linear-gradient(to right, #131d4b 4px, transparent 4px) 0 0,
-            linear-gradient(to right, #131d4b 4px, transparent 4px) 0 100%,
-            linear-gradient(to left, #131d4b 4px, transparent 4px) 100% 0,
-            linear-gradient(to left, #131d4b 4px, transparent 4px) 100% 100%,
-            linear-gradient(to bottom, #131d4b 4px, transparent 4px) 0 0,
-            linear-gradient(to bottom, #131d4b 4px, transparent 4px) 100% 0,
-            linear-gradient(to top, #131d4b 4px, transparent 4px) 0 100%,
-            linear-gradient(to top, #131d4b 4px, transparent 4px) 100% 100%;
+            linear-gradient(to right, white 4px, transparent 4px) 0 0,
+            linear-gradient(to right, white 4px, transparent 4px) 0 100%,
+            linear-gradient(to left, white 4px, transparent 4px) 100% 0,
+            linear-gradient(to left, white 4px, transparent 4px) 100% 100%,
+            linear-gradient(to bottom, white 4px, transparent 4px) 0 0,
+            linear-gradient(to bottom, white 4px, transparent 4px) 100% 0,
+            linear-gradient(to top, white 4px, transparent 4px) 0 100%,
+            linear-gradient(to top, white 4px, transparent 4px) 100% 100%;
 
         background-repeat: no-repeat;
         background-size: 20px 20px;
+    }
+
+    @media (max-height: 500px) {
+        #center-box {
+            width: calc(100vh - 100px);
+        }
     }
 
     #center-box:after {
@@ -125,8 +130,8 @@
         width: 50px;
         height: 50px;
         z-index: 10000;
-        background-color: #131d4b;
-        color: #717ba7;
+        background-color: white;
+        color: #1a1b22;
         /* border-radius: 73px; */
         display: flex;
         justify-content: center;
@@ -157,8 +162,12 @@
         z-index: 10;
         cursor: pointer;
         background-color: white;
-        border-radius: 10px;
+        border-radius: 5px;
         background-repeat: no-repeat;
+
+        position: absolute;
+        bottom: 20px;
+        right: 10px;
     }
 </style>
 
@@ -284,25 +293,6 @@
                 upateRecycleBin(selectedShape)
             });
 
-            // drawSquarePolyButton.addEventListener('click', () => {
-            //     const point = map.getCenter();
-            //     const tiltedRectangle1 = createPolygonGeometry(point, 500, 500, 500, 500, 0, 4, true);
-            //     buildPolygon(tiltedRectangle1)
-            //     autosaveData({ log: "drawSquarePolyButton" })
-            // })
-
-            // saveDataButton.addEventListener('click', () => {
-            //     saveData(session)
-            // });
-
-            // drawModeButton.addEventListener('click', () => {
-            //     drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-            // });
-
-            // deletePolygonButton.addEventListener('click', () => {
-            //     deleteSelectedShape();
-            // });
-
             plusButton.addEventListener("click", () => {
 
                 const { top: y1, left: x1, bottom: y2, right: x2 } = centerBox.getBoundingClientRect()
@@ -318,20 +308,11 @@
 
                 const polygon = buildPolygon(coords)
                 autosaveData({ log: "plusButton" })
-
-
                 setSelection(polygon);
             })
 
-            if (locationUrl) {
-                geocoder.geocode({ 'address': locationUrl }, function (results, status) {
-                    if (status == google.maps.GeocoderStatus.OK) {
-                        locationCenter = results[0].geometry.location
-                        map.setCenter(locationCenter);
-                        map.setZoom(13);
-                    }
-                });
-            }
+
+            getLocationByURL()
 
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(session)
@@ -343,32 +324,43 @@
                         bounds.extend(latLng);
                     });
                 })
-                if (!locationCenter) map.fitBounds(bounds);
+                if (!locationCenter) {
+                    map.fitBounds(bounds);
+                } else {
+                    getLocationByURL()
+                }
             }
             if (polygons.length === 0 && !locationCenter) getUserLocation()
+
+            function getLocationByURL() {
+                if (locationUrl) {
+                    geocoder.geocode({ 'address': locationUrl }, function (results, status) {
+                        if (status == google.maps.GeocoderStatus.OK) {
+                            locationCenter = results[0].geometry.location
+                            map.setCenter(locationCenter);
+                            map.setZoom(13);
+                        }
+                    });
+                }
+            }
         }
+
 
 
         function upateRecycleBin(polygon) {
             document.querySelectorAll('.trash-bin').forEach(d => d.remove())
 
             if (!polygon) return;
-            const coords = polygon.getPath().getArray().map(d => { return [d.lng(), d.lat()] })
-            const line = turf.lineString(coords);
-            const polygonLine = turf.lineToPolygon(line);
-            // const bbox = turf.bbox(polygonLine)
-            // var poly = turf.bboxPolygon(bbox);
-            // console.log('bbox', bbox);
 
-            const center = turf.centerOfMass(polygonLine);
-            const [lng, lat] = center.geometry.coordinates;
-            //const [lng, lat] = [bbox[2], bbox[3]];
+            // const coords = polygon.getPath().getArray().map(d => { return [d.lng(), d.lat()] })
+            // const line = turf.lineString(coords);
+            // const polygonLine = turf.lineToPolygon(line);
+            // const center = turf.centerOfMass(polygonLine);
+            // const [lng, lat] = center.geometry.coordinates;
+            // const { x, y } = fromLatLngToPoint({ lat, lng }, map)
 
-            const { x, y } = fromLatLngToPoint({ lat, lng }, map)
             const div = document.createElement('div')
             div.className = "trash-bin"
-            div.style.top = `${y - 20}px`
-            div.style.left = `${x - 20}px`
             div.addEventListener('click', () => {
                 deleteSelectedShape()
                 map.getDiv().removeChild(div)
