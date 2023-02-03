@@ -186,7 +186,10 @@
     <script type="text/javascript">
 
         let map;
+
         const input = document.getElementById('searchTextField');
+        const crossHair = document.getElementById('center-box');
+
         // const drawSquarePolyButton = document.getElementById('drawSquarePoly');
         // const saveDataButton = document.getElementById('saveData');
         // const drawModeButton = document.getElementById('drawMode');
@@ -282,6 +285,7 @@
                 })
                 clearSelection()
                 upateRecycleBin()
+                crosshairIsVisibile(true)
             });
             google.maps.event.addListener(map, 'zoom_changed', () => {
                 upateRecycleBin(selectedShape)
@@ -345,7 +349,9 @@
             }
         }
 
-
+        function crosshairIsVisibile(isVisible) {
+            crossHair.style.display = isVisible ? "block" : "none"
+        }
 
         function upateRecycleBin(polygon) {
             document.querySelectorAll('.trash-bin').forEach(d => d.remove())
@@ -365,6 +371,7 @@
                 deleteSelectedShape()
                 map.getDiv().removeChild(div)
                 selectedShape = null
+                setSelection(null)
             })
             map.getDiv().appendChild(div)
         }
@@ -392,6 +399,7 @@
                 selectedShape = polygon;
 
                 upateRecycleBin(polygon)
+                setSelection(polygon);
             });
             google.maps.event.addListener(polygon.getPath(), 'insert_at', function () {
                 autosaveData({ log: "insert_at" })
@@ -480,10 +488,15 @@
 
         //set selection to a shape
         function setSelection(shape) {
+            console.log('here');
+            crosshairIsVisibile(true)
+
+            if (!shape) return;
             clearSelection();
             selectedShape = shape;
             shape.setEditable(true);
             upateRecycleBin(shape)
+            crosshairIsVisibile(false)
         }
 
         //delete selected shape
