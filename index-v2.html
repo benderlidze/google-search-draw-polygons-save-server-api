@@ -15,6 +15,7 @@
 <style>
     body,
     html {
+        min-height: -webkit-fill-available;
         height: 100%;
         width: 100%;
         padding: 0px;
@@ -145,7 +146,7 @@
     }
 
     .search-bar {
-        position: absolute;
+        position: fixed;
         top: 0px;
         z-index: 100;
         left: 0px;
@@ -160,7 +161,6 @@
         background-image: url(bin.svg);
         background-size: 60%;
         background-position: center;
-        position: absolute;
         z-index: 10;
         cursor: pointer;
         background-color: white;
