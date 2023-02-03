@@ -15,7 +15,7 @@
 <style>
     body,
     html {
-        height: 100vh;
+        height: 100%;
         width: 100%;
         padding: 0px;
         margin: 0px;
@@ -188,7 +188,6 @@
     <script type="text/javascript">
 
         let map;
-
         const input = document.getElementById('searchTextField');
         const crossHair = document.getElementById('center-box');
 
@@ -267,11 +266,11 @@
                 });
                 google.maps.event.addListener(newShape.getPath(), 'insert_at', function () {
                     autosaveData({ log: "insert_at" })
-                    upateRecycleBin(polygon)
+                    //upateRecycleBin(polygon)
                 });
                 google.maps.event.addListener(newShape.getPath(), 'set_at', function () {
                     autosaveData({ log: "set_at" })
-                    upateRecycleBin(polygon)
+                    //upateRecycleBin(polygon)
                 });
 
                 allShapes.push(newShape);
@@ -289,15 +288,15 @@
                 upateRecycleBin()
                 crosshairIsVisibile(true)
             });
-            google.maps.event.addListener(map, 'zoom_changed', () => {
-                upateRecycleBin(selectedShape)
-            });
-            google.maps.event.addListener(map, 'dragstart', () => {
-                upateRecycleBin()
-            });
-            google.maps.event.addListener(map, 'idle', () => {
-                upateRecycleBin(selectedShape)
-            });
+            // google.maps.event.addListener(map, 'zoom_changed', () => {
+            //     upateRecycleBin(selectedShape)
+            // });
+            // google.maps.event.addListener(map, 'dragstart', () => {
+            //     upateRecycleBin()
+            // });
+            // google.maps.event.addListener(map, 'idle', () => {
+            //     upateRecycleBin(selectedShape)
+            // });
 
             plusButton.addEventListener("click", () => {
 
