@@ -202,10 +202,11 @@
         let selectedShape;
         let drawingManager;
         const allShapes = [];
-        let locationCenter;
+
 
         const urlParams = getUrlVars()
         const locationUrl = urlParams.location;
+        // const locationCenter = urlParams.location;
         const configUrl = urlParams.config;
         const session = urlParams.session ? urlParams.session : generateSessionID();
 
@@ -329,19 +330,22 @@
                         bounds.extend(latLng);
                     });
                 })
-                if (!locationCenter) {
+                if (!locationUrl) {
                     map.fitBounds(bounds);
                 } else {
                     getLocationByURL()
                 }
             }
-            if (polygons.length === 0 && !locationCenter) getUserLocation()
+            if (polygons.length === 0 && !locationUrl) {
+                console.log('here',);
+                getUserLocation()
+            }
 
             function getLocationByURL() {
                 if (locationUrl) {
                     geocoder.geocode({ 'address': locationUrl }, function (results, status) {
                         if (status == google.maps.GeocoderStatus.OK) {
-                            locationCenter = results[0].geometry.location
+                            const locationCenter = results[0].geometry.location
                             map.setCenter(locationCenter);
                             map.setZoom(13);
                         }
