@@ -102,6 +102,21 @@
 
         background-repeat: no-repeat;
         background-size: 20px 20px;
+
+        box-shadow: inset 0 0 120px 1px rgba(255, 255, 255, 0.3)
+    }
+
+    #center-info-text {
+        position: absolute;
+        width: 50%;
+        /* border: 1px dashed white; */
+        z-index: 100;
+        max-width: 400px;
+        max-height: 400px;
+        pointer-events: none;
+        background-color: white;
+        padding: 20px;
+        ;
     }
 
     @media (max-height: 500px) {
@@ -165,12 +180,15 @@
 <body>
 
     <div id="main-container">
+        <div id="center-info-text">
+            Lokalisiere deine Fläche und markiere sie mit dem Plus
+        </div>
         <div id="center-box">
             <div id="plusButton">+</div>
         </div>
         <div id="map"></div>
         <div class="search-bar">
-            <input id="searchTextField" class="inputs" placeholder="Enter a city, address or postal code">
+            <input id="searchTextField" class="inputs" placeholder="Auf der Karte suchen">
         </div>
     </div>
 
@@ -179,6 +197,7 @@
         let map;
         const input = document.getElementById('searchTextField');
         const crossHair = document.getElementById('center-box');
+        const centerInfoText = document.getElementById('center-info-text');
 
         // const drawSquarePolyButton = document.getElementById('drawSquarePoly');
         // const saveDataButton = document.getElementById('saveData');
@@ -199,13 +218,16 @@
         const configUrl = urlParams.config;
         const session = urlParams.session ? urlParams.session : generateSessionID();
 
+        if (urlParams.session) {
+            hideCenterInfoText()
+        }
 
         async function initMap() {
 
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 4,
                 center: { lat: 52.31786821583068, lng: 5.511021859039191 },
-                mapTypeId: google.maps.MapTypeId.SATELLITE,
+                mapTypeId: google.maps.MapTypeId.HYBRID,
                 tilt: 0,
                 fullscreenControl: false,
                 mapTypeControl: false,
@@ -277,16 +299,12 @@
                 clearSelection()
                 upateRecycleBin()
                 crosshairIsVisibile(true)
+                // hideCenterInfoText()
             });
-            // google.maps.event.addListener(map, 'zoom_changed', () => {
-            //     upateRecycleBin(selectedShape)
-            // });
-            // google.maps.event.addListener(map, 'dragstart', () => {
-            //     upateRecycleBin()
-            // });
-            // google.maps.event.addListener(map, 'idle', () => {
-            //     upateRecycleBin(selectedShape)
-            // });
+            google.maps.event.addListener(map, 'drag', () => { //clear selection on map click
+                hideCenterInfoText()
+            });
+
 
             plusButton.addEventListener("click", () => {
 
@@ -341,6 +359,10 @@
                     });
                 }
             }
+        }
+
+        function hideCenterInfoText() {
+            centerInfoText.style.display = "none"
         }
 
         function crosshairIsVisibile(isVisible) {
