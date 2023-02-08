@@ -303,7 +303,7 @@
                 // hideCenterInfoText()
             });
             google.maps.event.addListener(map, 'drag', () => { //clear selection on map click
-                hideCenterInfoText()
+                //hideCenterInfoText()
             });
 
 
@@ -323,6 +323,8 @@
                 const polygon = buildPolygon(coords)
                 autosaveData({ log: "plusButton" })
                 setSelection(polygon);
+
+                hideCenterInfoText()
             })
 
 
