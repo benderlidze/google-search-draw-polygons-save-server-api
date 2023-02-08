@@ -332,12 +332,10 @@
 
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(session)
-            console.log('polygons', polygons);
 
             if (polygons.session && polygons.session !== "") {
                 hideCenterInfoText()
             }
-
             if (polygons.geometry && polygons.geometry.length > 0) {
                 const bounds = new google.maps.LatLngBounds();
                 polygons.geometry.map(p => {
@@ -352,7 +350,9 @@
                     getLocationByURL()
                 }
             }
-            if (polygons.length === 0 && !locationUrl) {
+
+            console.log('polygons', polygons);
+            if (polygons && polygons.geometry.length === 0 && !locationUrl) {
                 console.log('here',);
                 getUserLocation()
             }
