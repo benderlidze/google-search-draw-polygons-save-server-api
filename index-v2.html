@@ -332,9 +332,12 @@
 
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(session)
-            if (polygons.session !== "") {
+            console.log('polygons', polygons);
+
+            if (polygons.session && polygons.session !== "") {
                 hideCenterInfoText()
             }
+
             if (polygons.geometry && polygons.geometry.length > 0) {
                 const bounds = new google.maps.LatLngBounds();
                 polygons.geometry.map(p => {
@@ -479,7 +482,7 @@
         const autosaveData = _.debounce(function ({ log }) {
             console.log('autosave', log);
             saveData(session)
-        }, 1000);
+        }, 500);
 
         function saveData(session) {
             console.log('save', session);
