@@ -482,7 +482,7 @@
         const autosaveData = _.debounce(function ({ log }) {
             console.log('autosave', log);
             saveData(session)
-        }, 500);
+        }, 1000);
 
         function saveData(session) {
             console.log('save', session);
