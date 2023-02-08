@@ -219,9 +219,9 @@
         const configUrl = urlParams.config;
         const session = urlParams.session ? urlParams.session : generateSessionID();
 
-        if (urlParams.session) {
-            hideCenterInfoText()
-        }
+        // if (urlParams.session) {
+        //     hideCenterInfoText()
+        // }
 
         async function initMap() {
 
@@ -332,6 +332,9 @@
 
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(session)
+            if (polygons.session !== "") {
+                hideCenterInfoText()
+            }
             if (polygons.geometry && polygons.geometry.length > 0) {
                 const bounds = new google.maps.LatLngBounds();
                 polygons.geometry.map(p => {
@@ -481,7 +484,7 @@
         function saveData(session) {
             console.log('save', session);
             if (!session) return;
-            if (allShapes.length === 0) return;
+            // if (allShapes.length === 0) return;
             fetch(apiURL, {
                 method: "POST",
                 body: JSON.stringify({
