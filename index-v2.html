@@ -353,9 +353,12 @@
 
             console.log('polygons', polygons);
             if (!polygons.geometry && !locationUrl) {
-                console.log('here',);
                 getUserLocation()
             }
+            if (polygons.session && polygons.session !== "" && polygons.geometry.length === 0) {
+                getUserLocation()
+            }
+
 
             function getLocationByURL() {
                 if (locationUrl) {
