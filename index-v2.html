@@ -352,7 +352,7 @@
             }
 
             console.log('polygons', polygons);
-            if (polygons && polygons.geometry.length === 0 && !locationUrl) {
+            if (!polygons.geometry && !locationUrl) {
                 console.log('here',);
                 getUserLocation()
             }
