@@ -7,24 +7,83 @@
     <title>Google Maps Multiple Markers</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script
+        src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"
         integrity="sha256-qXBd/EfAdjOA2FGrGAG+b3YBn2tn5A6bhz+LSgYD96k=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="css/styles.css">
+
 </head>
+<style>
+    body,
+    html {
+        height: 100%;
+        width: 100%;
+        padding: 0px;
+        margin: 0px;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #map {
+        width: 100%;
+        height: 100vh;
+    }
+
+    #container {
+        display: flex;
+        height: 800px;
+        justify-content: space-between;
+    }
+
+    #header {
+        padding: 10px;
+        display: flex;
+        flex-direction: row;
+        align-content: center;
+        align-items: center;
+        justify-content: flex-start;
+        background-color: #131d4b;
+        color: white;
+    }
+
+    .inputs {
+        padding: 5px;
+        margin: 5px;
+    }
+
+    .button {
+        padding: 10px;
+        margin: 5px;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background-color: #343538;
+    }
+
+    .right-pannel {
+        display: flex;
+        position: absolute;
+        top: 80px;
+        left: 10px;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px;
+        flex-direction: column;
+    }
+</style>
 
 <body>
 
     <div id="main-container">
-        <div id="center-info-text">
-            Lokalisiere deine Fläche und markiere sie mit dem Plus
-        </div>
-        <div id="center-box">
-            <div id="plusButton">+</div>
-        </div>
         <div id="map"></div>
-        <div class="search-bar">
-            <input id="searchTextField" class="inputs" placeholder="Auf der Karte suchen">
+        <div class="right-pannel">
+            <input id="searchTextField" class="inputs" placeholder="Enter a city, address or postal code">
+            <button class="button" id="drawSquarePoly">Draw square poly</button>
+            <button class="button" id="drawMode">Draw Poly</button>
+            <button class="button" id="deletePolygon">Delete Poly</button>
+            <button class="button" id="saveData">Save data to DB</button>
         </div>
     </div>
 
@@ -32,46 +91,30 @@
 
         let map;
         const input = document.getElementById('searchTextField');
-        const crossHair = document.getElementById('center-box');
-        const centerInfoText = document.getElementById('center-info-text');
-
-        // const drawSquarePolyButton = document.getElementById('drawSquarePoly');
-        // const saveDataButton = document.getElementById('saveData');
-        // const drawModeButton = document.getElementById('drawMode');
-        // const deletePolygonButton = document.getElementById('deletePolygon');
-        const centerBox = document.getElementById('center-box');
-        const plusButton = document.getElementById('plusButton');
+        const drawSquarePolyButton = document.getElementById('drawSquarePoly');
+        const saveDataButton = document.getElementById('saveData');
+        const drawModeButton = document.getElementById('drawMode');
+        const deletePolygonButton = document.getElementById('deletePolygon');
         const apiURL = 'https://serg.one/google-save-poly-api/api.php'
 
         let selectedShape;
         let drawingManager;
         const allShapes = [];
-
+        let locationCenter;
 
         const urlParams = getUrlVars()
         const locationUrl = urlParams.location;
-        // const locationCenter = urlParams.location;
         const configUrl = urlParams.config;
         const session = urlParams.session ? urlParams.session : generateSessionID();
 
-        // if (urlParams.session) {
-        //     hideCenterInfoText()
-        // }
 
         async function initMap() {
 
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 4,
                 center: { lat: 52.31786821583068, lng: 5.511021859039191 },
-                mapTypeId: google.maps.MapTypeId.HYBRID,
+                mapTypeId: google.maps.MapTypeId.SATELLITE,
                 tilt: 0,
-                fullscreenControl: false,
-                mapTypeControl: false,
-                // gestureHandling: "cooperative",
-                zoomControl: false,
-                streetViewControl: false,
-                tiltControl: false,
-                gestureHandling: 'greedy'
             });
 
             const geocoder = new google.maps.Geocoder()
@@ -84,7 +127,7 @@
                 var place = autocomplete.getPlace();
                 const loc = place.geometry.location;
                 map.setCenter(place.geometry.location);
-                map.setZoom(16);
+                map.setZoom(8);
             });
 
             const drawingManager = new google.maps.drawing.DrawingManager({
@@ -114,15 +157,14 @@
                 });
                 google.maps.event.addListener(newShape.getPath(), 'insert_at', function () {
                     autosaveData({ log: "insert_at" })
-                    //upateRecycleBin(polygon)
                 });
                 google.maps.event.addListener(newShape.getPath(), 'set_at', function () {
                     autosaveData({ log: "set_at" })
-                    //upateRecycleBin(polygon)
                 });
 
                 allShapes.push(newShape);
                 setSelection(newShape);//after drawing = set selected
+
                 autosaveData({ log: "overlaycomplete" })
             });
 
@@ -133,44 +175,39 @@
                     d.setDraggable(false)
                 })
                 clearSelection()
-                upateRecycleBin()
-                crosshairIsVisibile(true)
-                // hideCenterInfoText()
-            });
-            google.maps.event.addListener(map, 'drag', () => { //clear selection on map click
-                //hideCenterInfoText()
             });
 
-
-            plusButton.addEventListener("click", () => {
-
-                const { top: y1, left: x1, bottom: y2, right: x2 } = centerBox.getBoundingClientRect()
-                const top = fromPixelToLatLng(map, x1, y1)
-                const bottom = fromPixelToLatLng(map, x2, y2)
-
-                const bbox = [top.lng(), top.lat(), bottom.lng(), bottom.lat()];
-                const poly = turf.bboxPolygon(bbox);
-                const coords = turf.getCoords(poly)
-                    .flat()
-                    .map(d => { return { lng: d[0], lat: d[1] } })
-                    .splice(0, 4)
-
-                const polygon = buildPolygon(coords)
-                autosaveData({ log: "plusButton" })
-                setSelection(polygon);
-
-                hideCenterInfoText()
+            drawSquarePolyButton.addEventListener('click', () => {
+                const point = map.getCenter();
+                const tiltedRectangle1 = createPolygonGeometry(point, 500, 500, 500, 500, 0, 4, true);
+                buildPolygon(tiltedRectangle1)
+                autosaveData({ log: "drawSquarePolyButton" })
             })
 
+            saveDataButton.addEventListener('click', () => {
+                saveData(session)
+            });
 
-            getLocationByURL()
+            drawModeButton.addEventListener('click', () => {
+                drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+            });
+
+            deletePolygonButton.addEventListener('click', () => {
+                deleteSelectedShape();
+            });
+
+            if (locationUrl) {
+                geocoder.geocode({ 'address': locationUrl }, function (results, status) {
+                    if (status == google.maps.GeocoderStatus.OK) {
+                        locationCenter = results[0].geometry.location
+                        map.setCenter(locationCenter);
+                        map.setZoom(13);
+                    }
+                });
+            }
 
             //------------Load Polygons from DB ----------------
             const polygons = await fetchPolygonsByID(session)
-
-            if (polygons.session && polygons.session !== "") {
-                hideCenterInfoText()
-            }
             if (polygons.geometry && polygons.geometry.length > 0) {
                 const bounds = new google.maps.LatLngBounds();
                 polygons.geometry.map(p => {
@@ -179,68 +216,12 @@
                         bounds.extend(latLng);
                     });
                 })
-                if (!locationUrl) {
-                    map.fitBounds(bounds);
-                } else {
-                    getLocationByURL()
-                }
+                if (!locationCenter) map.fitBounds(bounds);
             }
-
-            console.log('polygons', polygons);
-            if (!polygons.geometry && !locationUrl) {
-                getUserLocation()
-            }
-            if (polygons.session && polygons.session !== "" && polygons.geometry.length === 0) {
-                getUserLocation()
-            }
-
-
-            function getLocationByURL() {
-                if (locationUrl) {
-                    geocoder.geocode({ 'address': locationUrl }, function (results, status) {
-                        if (status == google.maps.GeocoderStatus.OK) {
-                            const locationCenter = results[0].geometry.location
-                            map.setCenter(locationCenter);
-                            map.setZoom(13);
-                        }
-                    });
-                }
-            }
-        }
-
-        function hideCenterInfoText() {
-            centerInfoText.style.display = "none"
-        }
-
-        function crosshairIsVisibile(isVisible) {
-            crossHair.style.display = isVisible ? "block" : "none"
-        }
-
-        function upateRecycleBin(polygon) {
-            document.querySelectorAll('.trash-bin').forEach(d => d.remove())
-
-            if (!polygon) return;
-
-            // const coords = polygon.getPath().getArray().map(d => { return [d.lng(), d.lat()] })
-            // const line = turf.lineString(coords);
-            // const polygonLine = turf.lineToPolygon(line);
-            // const center = turf.centerOfMass(polygonLine);
-            // const [lng, lat] = center.geometry.coordinates;
-            // const { x, y } = fromLatLngToPoint({ lat, lng }, map)
-
-            const div = document.createElement('div')
-            div.className = "trash-bin"
-            div.addEventListener('click', () => {
-                deleteSelectedShape()
-                map.getDiv().removeChild(div)
-                selectedShape = null
-                setSelection(null)
-            })
-            map.getDiv().appendChild(div)
+            if (polygons.length === 0 && !locationCenter) getUserLocation()
         }
 
         function buildPolygon(geometry) {
-            console.log('geometry', geometry);
             const polygon = new google.maps.Polygon({
                 paths: geometry,
                 strokeColor: '#FF0000',
@@ -260,17 +241,12 @@
                 polygon.setEditable(true);
                 polygon.setDraggable(true);
                 selectedShape = polygon;
-
-                upateRecycleBin(polygon)
-                setSelection(polygon);
             });
             google.maps.event.addListener(polygon.getPath(), 'insert_at', function () {
                 autosaveData({ log: "insert_at" })
-                upateRecycleBin(polygon)
             });
             google.maps.event.addListener(polygon.getPath(), 'set_at', function () {
                 autosaveData({ log: "set_at" })
-                upateRecycleBin(polygon)
             });
 
             allShapes.push(polygon);
@@ -325,7 +301,7 @@
         function saveData(session) {
             console.log('save', session);
             if (!session) return;
-            // if (allShapes.length === 0) return;
+            if (allShapes.length === 0) return;
             fetch(apiURL, {
                 method: "POST",
                 body: JSON.stringify({
@@ -351,15 +327,9 @@
 
         //set selection to a shape
         function setSelection(shape) {
-            console.log('here');
-            crosshairIsVisibile(true)
-
-            if (!shape) return;
             clearSelection();
             selectedShape = shape;
             shape.setEditable(true);
-            upateRecycleBin(shape)
-            crosshairIsVisibile(false)
         }
 
         //delete selected shape
@@ -409,29 +379,10 @@
         }
 
         function generateSessionID() {
-            //UUID v4
-            const sessionId = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-            );
+            //return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            const sessionId = new Date().getTime();
             updateURL({ session: sessionId, location: locationUrl, config: configUrl })
-
             return sessionId
-        }
-
-        const fromPixelToLatLng = function (map, x, y) {
-            const projection = map.getProjection();
-            const topRight = projection.fromLatLngToPoint(map.getBounds().getNorthEast());
-            const bottomLeft = projection.fromLatLngToPoint(map.getBounds().getSouthWest());
-            const scale = 1 << map.getZoom();
-            return projection.fromPointToLatLng(new google.maps.Point(x / scale + bottomLeft.x, y / scale + topRight.y));
-        };
-
-        function fromLatLngToPoint(latLng, map) {
-            var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
-            var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
-            var scale = Math.pow(2, map.getZoom());
-            var worldPoint = map.getProjection().fromLatLngToPoint(latLng);
-            return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
         }
 
     </script>
